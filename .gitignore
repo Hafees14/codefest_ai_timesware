@@ -1,0 +1,16 @@
+# Secrets — never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated data (large, reproducible from ingest.py / embed.py — don't bloat the repo)
+data/chunks.jsonl
+data/chroma_db/
+
+# OS junk
+.DS_Store
+Thumbs.db
