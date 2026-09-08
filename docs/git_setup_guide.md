@@ -1,5 +1,18 @@
 # Git Setup & Commit History Guide
 
+**URGENT — action needed before submission:** an external audit of the
+public repo found only 3 commits visible for a two-week project. The
+rubric explicitly reviews commit history to verify "sustained, genuine
+work" — a 3-commit history invites exactly the "one-shot generation"
+suspicion the rubric penalizes hardest (worth up to 15% directly, and
+credibility-adjacent to another 15%). **Do not leave this until the
+deadline.** If real historical commits don't exist because work happened
+in this chat rather than incremental local commits, the honest fix is to
+commit the current state in a small number of well-organized, clearly-
+labeled commits now — do NOT fabricate false timestamps or a fake history,
+since that is worse than a short real one if discovered.
+
+
 Judges explicitly review commit history to verify genuine, sustained work
 (not a single last-minute dump). This guide gives you a realistic commit
 sequence to run now, reflecting the actual order this project was built in.

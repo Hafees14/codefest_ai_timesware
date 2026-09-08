@@ -10,6 +10,18 @@ which don't reliably follow "respond only in JSON." Mitigated with
 automatic retry (succeeded in every observed case) — a workaround, not a
 fix; the underlying unpredictability remains.
 
+## 1b. Sufficiency judgment is still a single LLM call, checked but not replaced
+
+An independent code-level check now overrides the LLM's sufficiency
+self-report specifically when a reformulated query retrieves
+near-duplicate evidence to a prior search (see decisions.md #8). This
+closes one real gap, but the core sufficiency decision — "is this enough
+to answer" — is still made by a single, unstructured LLM JSON response
+with no evidence-coverage checklist, entity tracking, or independent
+confidence score behind it. A skeptical reviewer asking "what code
+decides you have enough evidence" should be told exactly this, not given
+an inflated description of the mechanism.
+
 ## 2. Single-iteration answers rely on retrieval luck
 One test question resolved in a single iteration because the first
 retrieval happened to surface everything needed. Manually verified as

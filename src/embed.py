@@ -19,14 +19,19 @@ import time
 from pathlib import Path
 from typing import List, Dict, Any
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from sentence_transformers import SentenceTransformer
 import chromadb
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-CHUNKS_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\data\chunks.jsonl"
-CHROMA_DIR = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\data\chroma_db"
+# Paths resolve relative to the project root by default; override via .env.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CHUNKS_FILE = os.environ.get("CHUNKS_FILE", str(_PROJECT_ROOT / "data" / "chunks.jsonl"))
+CHROMA_DIR = os.environ.get("CHROMA_DIR", str(_PROJECT_ROOT / "data" / "chroma_db"))
 COLLECTION_NAME = "ashen_era_archive"
 
 # bge-large-en-v1.5: strong open-weight retrieval model, free, runs locally.

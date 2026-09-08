@@ -3,13 +3,24 @@ Batch test runner — runs every question in sample_questions.json through the
 orchestrator and saves full traces + answers to output/ for review.
 """
 
+import os
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from orchestrator import run_iterative_search
 
-SAMPLE_QUESTIONS_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\corpus\Ashen_Era_Archive\Ashen_Era_Archive\sample_questions.json"
-OUTPUT_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\output\sample_question_results.json"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SAMPLE_QUESTIONS_FILE = os.environ.get(
+    "SAMPLE_QUESTIONS_FILE",
+    str(_PROJECT_ROOT / "corpus" / "Ashen_Era_Archive" / "Ashen_Era_Archive" / "sample_questions.json"),
+)
+OUTPUT_FILE = os.environ.get(
+    "SAMPLE_RESULTS_OUTPUT",
+    str(_PROJECT_ROOT / "output" / "sample_question_results.json"),
+)
 
 
 TARGET_TRACK_KEYWORD = "1C"  # only run questions belonging to your chosen sub-track

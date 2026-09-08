@@ -43,3 +43,29 @@ Balances thoroughness against cost/latency. In stress testing, questions
 requiring multiple hops used the full 5 iterations and still correctly
 reported "the record doesn't say" rather than fabricating once the cap
 was hit — the cap is a safety bound, not a forced-answer trigger.
+
+## 8. Independent stopping signal alongside the LLM's sufficiency self-report
+
+**Decision**: Add a code-level check (`chunks_are_near_duplicate`) that
+compares each iteration's retrieved chunks against all prior iterations'
+retrievals. If a reformulated query returns substantially the same
+evidence as a previous search, the loop stops regardless of what the
+LLM's `judge_sufficiency` call reports.
+
+**Why**: Originally, the only stopping mechanism was the LLM's own
+`"sufficient": true/false` self-report, plus the hard `MAX_ITERATIONS`
+cap. This meant there was no independently verifiable signal for "this
+search direction is exhausted" — an internal review of the codebase
+correctly identified this as the single biggest gap between this system
+and an "ideal" 1C implementation: every planning, analysis, and
+stopping decision was delegated to one unstructured LLM JSON response.
+
+**What this does and doesn't fix**: this is a narrow, honest
+improvement — it catches the specific failure mode where a
+reformulated query is semantically different in wording but retrieves
+the same evidence (a real risk given the corpus's dense
+cross-referencing). It does **not** add a full evidence-coverage
+checklist, entity/relationship tracking, or a structured
+missing-information representation — the sufficiency judgment itself is
+still one LLM call. That remains an honest limitation, not something to
+oversell in the report or demo.

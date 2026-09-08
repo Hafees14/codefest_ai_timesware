@@ -18,12 +18,20 @@ Run this the same way as stress_test.py. Results are NOT pre-verified —
 they must be manually checked against the corpus, same as before.
 """
 
+import os
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from orchestrator import run_iterative_search
 
-OUTPUT_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\output\stress_test_round2_results.json"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+OUTPUT_FILE = os.environ.get(
+    "STRESS_TEST_ROUND2_OUTPUT",
+    str(_PROJECT_ROOT / "output" / "stress_test_round2_results.json"),
+)
 
 ROUND2_QUESTIONS = [
     # Entity that (as far as we know from exploration so far) may not exist —

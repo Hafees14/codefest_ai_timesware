@@ -17,6 +17,9 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict
 
+from dotenv import load_dotenv
+load_dotenv()  # reads .env from project root (searches parent directories)
+
 # ---------------------------------------------------------------------------
 # Dependencies (install as needed):
 #   pip install pypdf pdf2image pytesseract python-docx markdown-it-py --break-system-packages
@@ -25,8 +28,18 @@ from typing import List, Optional, Dict
 
 CHUNK_SIZE = 800          # target chars per chunk (tune based on your embedding model)
 CHUNK_OVERLAP = 150       # overlap between consecutive chunks
-CORPUS_DIR = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\corpus\Ashen_Era_Archive\Ashen_Era_Archive"
-OUTPUT_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\data\chunks.jsonl"
+# Paths are resolved relative to the project root by default (this file
+# lives in src/, so the project root is one level up). Override via .env
+# or environment variables if your corpus lives elsewhere.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CORPUS_DIR = os.environ.get(
+    "CORPUS_DIR",
+    str(_PROJECT_ROOT / "corpus" / "Ashen_Era_Archive" / "Ashen_Era_Archive"),
+)
+OUTPUT_FILE = os.environ.get(
+    "CHUNKS_FILE",
+    str(_PROJECT_ROOT / "data" / "chunks.jsonl"),
+)
 
 
 # ---------------------------------------------------------------------------

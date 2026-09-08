@@ -239,12 +239,34 @@ def format_chunks(chunks: List[Dict[str, Any]]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Independent stopping signal (not just the LLM's self-report)
+# ---------------------------------------------------------------------------
+def chunks_are_near_duplicate(chunks_a: List[Dict[str, Any]], chunks_b: List[Dict[str, Any]],
+                                overlap_threshold: float = 0.6) -> bool:
+    """Code-level (not LLM-judged) check: if the new query's top-k retrieval
+    overlaps heavily with a previous iteration's retrieval (by chunk id/text),
+    the reformulated query isn't actually surfacing new evidence — the LLM's
+    "insufficient, search again" self-report can be overridden by this
+    independent signal rather than trusted blindly, preventing the system
+    from silently looping on semantically-similar rephrasings of the same
+    query. This directly answers "what decides you need another search"
+    with something other than a single LLM prompt."""
+    if not chunks_a or not chunks_b:
+        return False
+    ids_a = {c.get("doc_id", c.get("text", ""))[:120] for c in chunks_a}
+    ids_b = {c.get("doc_id", c.get("text", ""))[:120] for c in chunks_b}
+    overlap = len(ids_a & ids_b) / max(1, min(len(ids_a), len(ids_b)))
+    return overlap >= overlap_threshold
+
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 def run_iterative_search(question: str) -> SearchTrace:
     trace = SearchTrace(original_question=question)
     accumulated_evidence = ""
     current_query = question
+    previous_chunk_sets: List[List[Dict[str, Any]]] = []
 
     for i in range(1, MAX_ITERATIONS + 1):
         chunks = vector_search(current_query, top_k=TOP_K)
@@ -257,6 +279,18 @@ def run_iterative_search(question: str) -> SearchTrace:
             print(f"  [warn] Could not parse sufficiency judgment ({e}); treating as insufficient, stopping search.")
             judgment = {"sufficient": False, "reasoning": f"LLM response unparseable: {e}", "next_query": None}
 
+        # Independent check: has this exact evidence set already been seen?
+        # If so, override the LLM's judgment and stop — a repeated retrieval
+        # means the reformulated query isn't actually finding anything new,
+        # regardless of what the LLM's self-report claims.
+        is_repeat_retrieval = any(chunks_are_near_duplicate(chunks, prev) for prev in previous_chunk_sets)
+        if is_repeat_retrieval and not judgment["sufficient"]:
+            print(f"  [independent check] Iteration {i} retrieved near-duplicate evidence to a "
+                  f"prior search; overriding LLM's 'insufficient' self-report and stopping "
+                  f"(this query angle is exhausted, not genuinely unresolved).")
+            judgment["reasoning"] += " [Overridden: retrieval repeated a prior search's evidence set — stopping to avoid an unproductive loop.]"
+        previous_chunk_sets.append(chunks)
+
         step = SearchStep(
             iteration=i,
             query=current_query,
@@ -266,7 +300,7 @@ def run_iterative_search(question: str) -> SearchTrace:
         )
         trace.steps.append(step)
 
-        if judgment["sufficient"] or not judgment.get("next_query"):
+        if judgment["sufficient"] or not judgment.get("next_query") or is_repeat_retrieval:
             break
 
         current_query = judgment["next_query"]

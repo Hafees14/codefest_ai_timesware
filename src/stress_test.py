@@ -10,12 +10,20 @@ documents, or whether it settles too early / hallucinates a chain that
 isn't actually supported by the evidence.
 """
 
+import os
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from orchestrator import run_iterative_search
 
-OUTPUT_FILE = r"D:\COMPETITIONS\SLIIT CodeFest\CodeFest AI Innovation\codefest-ai\output\stress_test_results.json"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+OUTPUT_FILE = os.environ.get(
+    "STRESS_TEST_OUTPUT",
+    str(_PROJECT_ROOT / "output" / "stress_test_results.json"),
+)
 
 STRESS_TEST_QUESTIONS = [
     # Multi-hop: requires finding the Leaden Accord conflict's outcome, THEN
