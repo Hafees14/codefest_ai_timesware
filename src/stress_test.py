@@ -36,6 +36,35 @@ STRESS_TEST_QUESTIONS = [
     # correctly when asked a question that invites picking a 'juicy' but
     # unreliable answer over a boring, uncertain one.
     "According to trial transcripts or interrogation records, was Crookgate Keep ever formally claimed by any lord or faction, contradicting its official 'ownerless' status?",
+
+    # --- Round 2: robustness / edge-case questions ---
+
+    # Entirely fabricated entity name — tests whether the system correctly
+    # reports "this doesn't exist in the corpus" rather than confabulating
+    # a plausible-sounding answer about a place that was never mentioned.
+    "What is the history of the fortress known as Duskhollow Reach, and which faction currently controls it?",
+
+    # Ambiguous/underspecified question — multiple entities in the corpus
+    # could plausibly match "the coldwater family". Tests whether the system
+    # asks for clarification implicitly (via its reasoning) or picks one
+    # candidate and states its assumption, rather than silently guessing.
+    "What happened to the Coldwater family's holdings after the events described in the trial transcripts?",
+
+    # Numeric precision trap — tests whether the system distinguishes
+    # between "294 AS" (Crookgate Keep's founding, confirmed) and any other
+    # nearby date it may have seen for a DIFFERENT entity, rather than
+    # cross-contaminating facts between similar-sounding entries.
+    "Multiple locations in the archive were founded in years close to 294 AS. Which specific locations share that founding year, and which sources confirm each one?",
+
+    # Direct request for a number that requires arithmetic across two
+    # documented dates — tests basic reasoning over retrieved facts, not
+    # just retrieval and quoting.
+    "How many years passed between the founding of Crookgate Keep and the end of the Leaden Accord conflict?",
+
+    # Explicit unreliable-narrator test — asks the system to notice when a
+    # single ephemera source's claim is contradicted by the majority of
+    # other sources, and to weigh reliability rather than simple vote-counting.
+    "One ballad claims Gloamreach was founded to commemorate a hero's death. Do more authoritative sources support or contradict this claim?",
 ]
 
 

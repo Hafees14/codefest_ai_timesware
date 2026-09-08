@@ -2,136 +2,75 @@
 
 ## Overview
 
-The system has three stages: **ingest** (parse the corpus into text chunks),
-**embed** (turn chunks into a searchable vector store), and **orchestrate**
-(the actual sub-track 1C iterative search loop).
+Three stages: ingest (parse corpus into chunks), embed (build a searchable
+vector store), orchestrate (the sub-track 1C iterative search loop).
 
-```
-┌─────────────┐     ┌──────────────┐     ┌───────────────┐     ┌────────────────┐
-│   corpus/   │ ──> │  ingest.py   │ ──> │   embed.py    │ ──> │ orchestrator.py│
-│ (415 docs,  │     │              │     │               │     │                │
-│ mixed format│     │ parse, OCR,  │     │ local embed   │     │ iterative      │
-│  and scans) │     │ dedupe,      │     │ model + Chroma│     │ retrieve/judge/│
-│             │     │ fix encoding │     │ vector store  │     │ refine loop    │
-└─────────────┘     └──────────────┘     └───────────────┘     └────────────────┘
-                            │                    │                      │
-                            ▼                    ▼                      ▼
-                     data/chunks.jsonl    data/chroma_db/      cited final answer
-```
+See docs/diagrams/architecture.png for the visual pipeline diagram.
 
-## Stage 1: Ingestion (`ingest.py`)
+## Stage 1: Ingestion (ingest.py)
 
-Walks the corpus directory and processes every file by type:
-
-- **PDF**: native text extraction via `pypdf`. Files named `*.scan.pdf` are
-  detected by filename and force full-page OCR (via `pdf2image` +
-  `pytesseract`) rather than attempting native extraction, since these are
-  genuine scanned images with no embedded text layer.
-- **DOCX**: paragraph and table text extracted via `python-docx`. Tables are
-  included explicitly — the codex documents store a lot of structured data
-  in tables that would otherwise be silently dropped.
-- **Markdown / plain text**: read directly.
-- **Standalone images**: OCR'd via `pytesseract`.
+- PDF: native text via pypdf. Files named *.scan.pdf are detected by filename
+  and force full-page OCR (pdf2image + pytesseract) instead of native
+  extraction, since these are genuine scanned images with no text layer.
+- DOCX: paragraphs and tables via python-docx (tables included explicitly —
+  the codex documents store structured data in tables).
+- Markdown / plain text: read directly.
+- Standalone images: OCR'd via pytesseract.
 
 **Deduplication**: many ephemera documents exist in multiple formats
-(`.docx` + `.pdf`, or `.pdf` + `.txt`) with identical content. Ingesting
-both would double-count the same document as two independent sources,
-which would corrupt cross-referencing in the orchestrator (an LLM might
-treat "two documents agree" as corroboration when it's actually the same
-document counted twice). The pipeline groups files by logical document
-name and keeps only the cleanest format (docx/md > pdf > txt), logging
-every skip for auditability. A `.scan.pdf` is *not* deduped against its
-plain `.pdf` sibling if one exists — these can be genuinely different
-sources (a clean transcript vs. a scanned facsimile).
+(.docx + .pdf, or .pdf + .txt) with identical content. Ingesting both would
+let the system mistake one document counted twice for two independent
+corroborating sources. Files are grouped by logical document name and only
+the cleanest format is kept (docx/md > pdf > txt), with every skip logged.
+A .scan.pdf is never deduped against its plain .pdf sibling — these may be
+genuinely distinct sources.
 
-**Chunking**: paragraph-aware sliding window (~800 chars, 150 char overlap)
-to avoid splitting facts mid-sentence.
+**Chunking**: paragraph-aware sliding window (~800 chars, 150 char overlap).
 
 **Encoding fix**: the source corpus files contain a baked-in mojibake bug
-(UTF-8 text that was double-encoded via Latin-1 at some point in the
-corpus's own generation pipeline, producing sequences like `a e (tm)` in
-place of a plain apostrophe). A `fix_mojibake()` pass re-decodes affected
-text across every extractor. Verified against the raw corpus files
-directly — the corruption is present in the original `.md`/`.docx` files
-themselves, not introduced by this pipeline's extraction.
+(UTF-8 text double-encoded via Latin-1, producing garbled character
+sequences in place of apostrophes/dashes). A fix_mojibake() pass re-decodes
+affected text across every extractor. Verified against the raw corpus files
+directly — the corruption exists in the corpus itself, not introduced by
+this pipeline.
 
-**Output**: `data/chunks.jsonl` — one JSON object per chunk, with
-`chunk_id`, `doc_id`, `source_path`, `doc_type` (novel/wiki/codex/ephemera/
-image), `text`, `page_or_section`, and `is_ocr` (flags text that came
-through OCR rather than native extraction, since OCR text is noisier and
-this matters for source-reliability reasoning downstream).
+**Output**: data/chunks.jsonl — chunk_id, doc_id, source_path, doc_type
+(novel/wiki/codex/ephemera/image), text, page_or_section, is_ocr.
 
-## Stage 2: Embedding (`embed.py`)
+## Stage 2: Embedding (embed.py)
 
-Each chunk is embedded using a local `sentence-transformers` model
-(`BAAI/bge-large-en-v1.5`) and stored in a local Chroma vector store with
-its metadata (`doc_type`, `is_ocr`, source path) attached.
+Each chunk is embedded using a local sentence-transformers model
+(BAAI/bge-large-en-v1.5) and stored in a local Chroma vector store with
+metadata attached. Chosen over Voyage AI (recommended in the challenge
+appendix) specifically to avoid the payment-card requirement for usable
+rate limits — see decisions.md. The build is resumable: chunks already
+present are skipped on re-run.
 
-Chosen over a hosted embedding API (Voyage AI, which the competition's
-appendix recommends) specifically to avoid the payment-card requirement —
-see decisions.md for the full reasoning.
+## Stage 3: Orchestration (orchestrator.py) — the core 1C logic
 
-The build process is resumable: chunks already present in the collection
-(matched by `chunk_id`) are skipped on a re-run, so an interrupted embed
-job doesn't need to restart from zero.
+- vector_search(): retrieves top-k relevant chunks for the current query.
+- judge_sufficiency(): LLM call deciding if evidence is enough, or proposing
+  a targeted follow-up query if not.
+- synthesize_answer(): final LLM call answering strictly from accumulated
+  evidence, citing sources and flagging conflicts explicitly.
+- SearchTrace: every iteration's query, reasoning, and verdict is logged,
+  giving a full audit trail for the "Human-AI collaboration quality" and
+  "technical judgment" rubric criteria.
 
-## Stage 3: Orchestration (`orchestrator.py`) — the core 1C logic
+**LLM access**: OpenRouter's openrouter/free auto-router, which selects a
+live free model per request rather than pinning one model ID (free model
+availability rotates too frequently for a hardcoded slug to survive
+development).
 
-This is the sub-track's central requirement: an assistant that searches
-iteratively, evaluates its own progress, and decides when to keep going or
-stop.
-
-```
-question
-   |
-   v
-vector_search()  <-----------------+
-   |                                |
-   v                                |
-judge_sufficiency()  (LLM call)     |
-   |                                |
-   +-- sufficient? --No--> refine query --+
-   |
-  Yes (or max iterations reached)
-   |
-   v
-synthesize_answer()  (LLM call)
-   |
-   v
-final answer + full search trace
-```
-
-- **`vector_search`**: retrieves the top-k most relevant chunks for the
-  current query from the Chroma store.
-- **`judge_sufficiency`**: an LLM call that looks at the question and
-  everything retrieved so far, and decides: is this enough to answer, or
-  is there a specific gap? If there's a gap, it proposes a targeted
-  follow-up query rather than just repeating the original question.
-- **`synthesize_answer`**: once sufficient (or the iteration cap is hit),
-  a final LLM call answers the question strictly from the accumulated
-  evidence, citing sources and explicitly flagging any conflicts between
-  sources rather than silently picking one.
-- **`SearchTrace`**: every iteration's query, reasoning, and sufficiency
-  verdict is logged, giving a full audit trail of why the system searched
-  what it searched — this is also the evidence trail for the
-  competition's "Human-AI collaboration quality" and "technical judgment"
-  rubric criteria.
-
-**LLM access**: OpenRouter's `openrouter/free` router, which automatically
-selects a live free model per request rather than pinning one specific
-model ID (see decisions.md — free model availability rotates too
-frequently for a hardcoded slug to survive a two-week build).
-
-**Resilience**: JSON responses are sanitized (LLMs occasionally emit
-invalid escape sequences, e.g. quoting a Windows file path with a bare
-backslash) and retried if a response doesn't look like JSON at all (the
-free router occasionally lands on a model that returns something like a
-raw safety-classifier verdict instead of following the prompt).
+**Resilience**: JSON responses are sanitized (invalid backslash escapes
+from embedded file paths) and retried if a response isn't JSON-shaped at
+all (the free router occasionally returns a raw safety-classifier string
+instead of following the prompt).
 
 ## Data flow summary
 
 | File | Produced by | Consumed by |
 |---|---|---|
-| `data/chunks.jsonl` | `ingest.py` | `embed.py` |
-| `data/chroma_db/` | `embed.py` | `orchestrator.py` (via `search()`) |
-| `output/*.json` | `run_sample_questions.py`, `stress_test.py` | manual review, report evidence |
+| data/chunks.jsonl | ingest.py | embed.py |
+| data/chroma_db/ | embed.py | orchestrator.py |
+| output/*.json | test scripts | manual review, report evidence |

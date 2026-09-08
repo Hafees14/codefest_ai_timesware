@@ -1,4 +1,4 @@
-# Secrets — never commit
+# Secrets
 .env
 
 # Python
@@ -7,7 +7,7 @@ __pycache__/
 .venv/
 venv/
 
-# Generated data (large, reproducible from ingest.py / embed.py — don't bloat the repo)
+# Generated data
 data/chunks.jsonl
 data/chroma_db/
 

@@ -1,0 +1,91 @@
+<svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#444"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="620" fill="#ffffff"/>
+
+  <text x="500" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a1a1a">Ashen Era Archive — Iterative Search Pipeline (Sub-track 1C)</text>
+
+  <g>
+    <rect x="30" y="70" width="170" height="90" rx="8" fill="#f4f0ff" stroke="#7c5cff" stroke-width="1.5"/>
+    <text x="115" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#3a2a80">corpus/</text>
+    <text x="115" y="120" text-anchor="middle" font-size="10" fill="#3a2a80">415 docs</text>
+    <text x="115" y="135" text-anchor="middle" font-size="10" fill="#3a2a80">PDF / DOCX / MD /</text>
+    <text x="115" y="148" text-anchor="middle" font-size="10" fill="#3a2a80">TXT / scans</text>
+  </g>
+
+  <g>
+    <rect x="245" y="70" width="170" height="90" rx="8" fill="#e8f4ff" stroke="#2b8ce6" stroke-width="1.5"/>
+    <text x="330" y="95" text-anchor="middle" font-size="13" font-weight="bold" fill="#0d4a80">ingest.py</text>
+    <text x="330" y="113" text-anchor="middle" font-size="9.5" fill="#0d4a80">parse + OCR</text>
+    <text x="330" y="127" text-anchor="middle" font-size="9.5" fill="#0d4a80">dedupe formats</text>
+    <text x="330" y="141" text-anchor="middle" font-size="9.5" fill="#0d4a80">fix encoding</text>
+    <text x="330" y="155" text-anchor="middle" font-size="9.5" fill="#0d4a80">chunks.jsonl</text>
+  </g>
+
+  <g>
+    <rect x="460" y="70" width="170" height="90" rx="8" fill="#e8fbf0" stroke="#28a862" stroke-width="1.5"/>
+    <text x="545" y="95" text-anchor="middle" font-size="13" font-weight="bold" fill="#125c34">embed.py</text>
+    <text x="545" y="113" text-anchor="middle" font-size="9.5" fill="#125c34">local embedding</text>
+    <text x="545" y="127" text-anchor="middle" font-size="9.5" fill="#125c34">(bge-large-en)</text>
+    <text x="545" y="141" text-anchor="middle" font-size="9.5" fill="#125c34">Chroma vector</text>
+    <text x="545" y="155" text-anchor="middle" font-size="9.5" fill="#125c34">store</text>
+  </g>
+
+  <g>
+    <rect x="675" y="70" width="290" height="90" rx="8" fill="#fff6e6" stroke="#d99a1f" stroke-width="1.5"/>
+    <text x="820" y="95" text-anchor="middle" font-size="13" font-weight="bold" fill="#7a5200">orchestrator.py</text>
+    <text x="820" y="113" text-anchor="middle" font-size="9.5" fill="#7a5200">iterative retrieve, judge,</text>
+    <text x="820" y="127" text-anchor="middle" font-size="9.5" fill="#7a5200">refine, synthesize loop</text>
+    <text x="820" y="145" text-anchor="middle" font-size="9.5" fill="#7a5200">(OpenRouter openrouter/free)</text>
+  </g>
+
+  <line x1="200" y1="115" x2="243" y2="115" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="415" y1="115" x2="458" y2="115" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="630" y1="115" x2="673" y2="115" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <text x="500" y="215" text-anchor="middle" font-size="15" font-weight="bold" fill="#1a1a1a">Orchestrator loop detail (the sub-track 1C core)</text>
+
+  <g>
+    <rect x="120" y="250" width="180" height="70" rx="8" fill="#fff6e6" stroke="#d99a1f" stroke-width="1.5"/>
+    <text x="210" y="278" text-anchor="middle" font-size="12" font-weight="bold" fill="#7a5200">vector_search()</text>
+    <text x="210" y="296" text-anchor="middle" font-size="9.5" fill="#7a5200">retrieve top-k chunks</text>
+  </g>
+
+  <g>
+    <rect x="400" y="250" width="200" height="70" rx="8" fill="#ffe9e9" stroke="#d64545" stroke-width="1.5"/>
+    <text x="500" y="272" text-anchor="middle" font-size="12" font-weight="bold" fill="#8a1f1f">judge_sufficiency()</text>
+    <text x="500" y="289" text-anchor="middle" font-size="9.5" fill="#8a1f1f">LLM call — enough evidence?</text>
+    <text x="500" y="304" text-anchor="middle" font-size="9.5" fill="#8a1f1f">propose next query if not</text>
+  </g>
+
+  <g>
+    <rect x="700" y="250" width="200" height="70" rx="8" fill="#e8f4ff" stroke="#2b8ce6" stroke-width="1.5"/>
+    <text x="800" y="278" text-anchor="middle" font-size="12" font-weight="bold" fill="#0d4a80">synthesize_answer()</text>
+    <text x="800" y="296" text-anchor="middle" font-size="9.5" fill="#0d4a80">LLM call — cited final answer</text>
+  </g>
+
+  <line x1="300" y1="285" x2="398" y2="285" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <path d="M 500 322 C 500 380, 210 380, 210 322" fill="none" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="355" y="400" text-anchor="middle" font-size="10" fill="#444">insufficient: refine query (max 5 iterations)</text>
+
+  <line x1="600" y1="285" x2="698" y2="285" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="650" y="240" text-anchor="middle" font-size="9.5" fill="#444">sufficient</text>
+
+  <g>
+    <rect x="335" y="450" width="330" height="100" rx="10" fill="#f0f0f0" stroke="#555" stroke-width="1.5"/>
+    <text x="500" y="480" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a1a">Final Answer + Search Trace</text>
+    <text x="500" y="500" text-anchor="middle" font-size="10" fill="#333">Cited, conflict-flagged answer</text>
+    <text x="500" y="516" text-anchor="middle" font-size="10" fill="#333">Full reasoning log for every</text>
+    <text x="500" y="530" text-anchor="middle" font-size="10" fill="#333">iteration (audit trail)</text>
+  </g>
+
+  <line x1="800" y1="320" x2="800" y2="410" stroke="#444" stroke-width="1.5"/>
+  <line x1="800" y1="410" x2="500" y2="410" stroke="#444" stroke-width="1.5"/>
+  <line x1="500" y1="410" x2="500" y2="448" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <text x="500" y="595" text-anchor="middle" font-size="10" fill="#888">SLIIT Codefest 2026 — Team Timesware — Sub-track 1C</text>
+</svg>
