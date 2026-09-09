@@ -114,3 +114,22 @@ separate validation before submission. It has not been benchmarked
 against the pure-dense baseline on real corpus queries to confirm it
 improves answer quality; it is a reasonable, well-motivated addition,
 not a proven one.
+
+## 11. Before/after comparison harness for the two unbenchmarked additions
+
+**Decision**: Add `src/before_after_comparison.py`, which runs the same
+set of previously-verified test questions under all four combinations of
+{query planning on/off} x {hybrid retrieval on/off} and saves results
+side by side.
+
+**Why**: query planning and hybrid retrieval (decisions #9, #10) were
+shipped with honest "unbenchmarked" caveats. Rather than leaving that
+caveat permanent, this harness makes it cheap to convert "principled
+addition" into "measured improvement" (or, honestly, "measured
+non-improvement") by re-running questions already manually verified
+against the corpus in earlier testing, so the same human-verification
+standard applies to the comparison as to every other result in this
+project. Results and conclusions from running this should be recorded
+in this file or the submission report before final submission — as of
+this commit, the harness exists but has not yet been run against the
+real corpus.

@@ -75,6 +75,19 @@ honesty standard applied to the near-duplicate-retrieval check (see
 entry 1b) applies here: this should be described as "a principled
 addition," not as a benchmarked improvement, until it is tested.
 
+## 8b. Near-duplicate overlap threshold (0.6) is unvalidated against a real repeat-loop case
+
+`chunks_are_near_duplicate()` uses a hardcoded 0.6 overlap threshold to
+decide when a reformulated query has stopped surfacing new evidence.
+This value was chosen as a reasonable default, not derived from testing
+against an actual case where the LLM's `next_query` looped back to
+semantically-similar-but-differently-worded territory. `src/
+before_after_comparison.py` (added after the third review) can surface
+whether this fires during real stress-test runs — check its output for
+`[independent check]` log lines and confirm at least once that the
+threshold triggers on a genuine repeat and does not false-positive on a
+legitimately different follow-up query.
+
 ## 9. Commit history: acknowledged, not retroactively fixable
 
 An external review correctly identified a thin commit history relative

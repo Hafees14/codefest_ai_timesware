@@ -26,8 +26,18 @@ requirement is a genuine live demonstration.
 Run: "State the precise year in the Age of Shadows that marks the true
 founding of Gloamreach."
 
-While it runs, narrate: "Watch. It's not just grabbing one passage. It's
-checking whether it actually has enough to answer."
+**Before it runs**, narrate: "First, watch it plan. It doesn't just fire
+the raw question at the search engine."
+
+**Immediately point out on screen**: the printed `[plan]` line showing
+`key_entities` and the `initial_query` it constructed — this is the
+`plan_initial_query()` step, logged directly into the trace
+(`SearchTrace.plan` in the JSON output). Say: "This is a real, separate
+step deciding where to start looking, before any retrieval happens."
+
+While the loop runs, narrate: "Now watch it iterate. It's not just
+grabbing one passage. It's checking whether it actually has enough to
+answer."
 
 Point out on screen: the multi-iteration trace, and specifically the
 final answer surfacing the codex (246 AS) vs. ephemera (286 AS) vs. wiki
@@ -35,6 +45,13 @@ final answer surfacing the codex (246 AS) vs. ephemera (286 AS) vs. wiki
 
 Say out loud: "This is the corpus's built-in unreliable-sources test, and
 our system caught it rather than guessing."
+
+**Honesty beat (say this explicitly, don't skip it)**: "The sufficiency
+check itself — deciding 'yes, I have enough' — is still one LLM call. We
+haven't pretended otherwise. What's new is that deciding *where to
+start* and *what to search* is now a real, inspectable step, and if the
+system ever loops back to evidence it already has, a separate check in
+our code catches that independently of the LLM's own judgment."
 
 ### Demo question 2 (show it resists fabrication - your strongest result)
 Run: "What happened to Voltaire Hollowmere after the Ley-storm that ended
