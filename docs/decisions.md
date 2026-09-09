@@ -69,3 +69,48 @@ checklist, entity/relationship tracking, or a structured
 missing-information representation — the sufficiency judgment itself is
 still one LLM call. That remains an honest limitation, not something to
 oversell in the report or demo.
+
+## 9. Explicit query-planning step before the first search
+
+**Decision**: Add `plan_initial_query()` — an LLM call that extracts key
+named entities/concepts from the question and proposes a focused initial
+search query, run once before the first retrieval. Replaces sending the
+raw question verbatim as the very first search.
+
+**Why**: A prior internal review correctly identified that this system
+had no code answering "how do you decide where to look" for the first
+search — it was always just the raw question. This is a direct,
+minimal response to that specific gap.
+
+**Honest scope**: this is still an LLM call, not a symbolic
+entity-extraction pipeline or a structured plan format beyond a flat
+list of entity strings. It should be described as "a real, separate
+planning step" — not as solving query planning in general. If the LLM's
+entity extraction is poor for a given question, the initial query may be
+no better (or occasionally worse) than the raw question; a fallback to
+the raw question on any planning failure is included specifically to
+avoid this becoming a new single point of failure.
+
+## 10. Hybrid dense + BM25 retrieval via reciprocal-rank fusion
+
+**Decision**: `embed.py`'s `search()` now combines the existing dense
+(semantic) search with a BM25 keyword search over the same chunks,
+merging results via simple reciprocal-rank fusion (sum of 1/rank across
+both lists). Pure dense search remains available via `use_hybrid=False`
+for comparison.
+
+**Why**: The corpus contains OCR'd scans, tables, and mixed-reliability
+ephemera. Dense embeddings can miss exact matches on proper nouns,
+dates, or unusual spellings that a keyword-based signal catches
+reliably — a known weakness of embedding-only retrieval that a prior
+review specifically flagged as unaddressed, given the corpus's stated
+difficulty profile.
+
+**Honest scope**: this is intentionally simple rank fusion, not a
+trained reranker or a learned fusion weight — chosen deliberately as a
+low-risk, cheaply-verifiable addition given limited remaining time,
+rather than introducing a new ML component whose behavior would need
+separate validation before submission. It has not been benchmarked
+against the pure-dense baseline on real corpus queries to confirm it
+improves answer quality; it is a reasonable, well-motivated addition,
+not a proven one.

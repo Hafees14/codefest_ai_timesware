@@ -96,7 +96,7 @@ Both must be on your system PATH.
 
 ```powershell
 pip install pypdf pdf2image pytesseract python-docx Pillow --break-system-packages
-pip install sentence-transformers chromadb --break-system-packages
+pip install sentence-transformers chromadb rank-bm25 --break-system-packages
 pip install openai python-dotenv --break-system-packages
 ```
 
@@ -119,13 +119,14 @@ OPENROUTER_API_KEY=your-key-here
 ### 5. Get the corpus
 
 Download and extract the Ashen Era Archive corpus into a `corpus/`
-folder at the project root. Update `CORPUS_DIR` at the top of
-`src/ingest.py` to point at the folder directly containing `chronicles/`,
-`codex/`, `ephemera/`, `wiki/`, and `images/` (extraction sometimes
-produces a doubled nested folder — point past that).
+folder at the project root, so it contains `chronicles/`, `codex/`,
+`ephemera/`, `wiki/`, and `images/` directly (extraction sometimes
+produces a doubled nested folder — flatten that if it happens).
 
-See [`configuration-example/README.md`](configuration-example/README.md)
-for the full list of paths each script expects.
+No source-file editing is required. All paths default to project-relative
+locations and are only overridden via `.env` if your layout differs — see
+`configuration-example/README.md` for the full list of overridable
+variables.
 
 ## Running the pipeline
 

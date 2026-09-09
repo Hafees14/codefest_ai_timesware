@@ -6,7 +6,7 @@ Core idea:
   query -> retrieve -> judge sufficiency -> (insufficient) refine query -> retrieve again -> ...
   -> synthesize final answer from all accumulated evidence
 
-This is a SKELETON. Swap in your actual embedding/retrieval calls and LLM client.
+Embedding/retrieval calls (via embed.py) and the LLM client (OpenRouter) are live.
 """
 
 import os
@@ -69,10 +69,12 @@ class SearchTrace:
     original_question: str
     steps: List[SearchStep] = field(default_factory=list)
     final_answer: str = ""
+    plan: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self):
         return {
             "question": self.original_question,
+            "plan": self.plan,
             "steps": [
                 {
                     "iteration": s.iteration,
@@ -173,6 +175,46 @@ def extract_json(raw: str) -> Dict[str, Any]:
         raise
 
 
+def plan_initial_query(question: str) -> Dict[str, Any]:
+    """
+    Explicit query-planning step, run once before the first retrieval.
+
+    This is a deliberately minimal answer to "how do you decide where to
+    look": rather than sending the raw question verbatim as the first
+    search (the previous behavior), an LLM call first extracts the key
+    named entities/concepts the question depends on and proposes a
+    focused initial search query built from them. This is a real,
+    separately-inspectable step distinct from judge_sufficiency — but it
+    is still LLM-driven, not a symbolic entity-extraction pipeline, so it
+    should not be oversold as full query planning (see limitations.md).
+
+    Returns {"key_entities": [...], "initial_query": str}. Falls back to
+    the raw question if planning fails for any reason (network error,
+    unparseable response) — this step is an enhancement, not a
+    single point of failure for the pipeline.
+    """
+    prompt = f"""A user wants to search a large document archive to answer this question:
+
+Question: {question}
+
+Before searching, identify the key named entities, places, events, or concepts this
+question depends on, and propose a focused initial search query.
+
+Respond ONLY with JSON:
+{{
+  "key_entities": ["entity1", "entity2"],
+  "initial_query": "a focused search query covering the entities above"
+}}"""
+    try:
+        raw = call_llm(prompt)
+        result = extract_json(raw)
+        if "initial_query" in result and result["initial_query"]:
+            return result
+    except Exception as e:
+        print(f"  [warn] Query planning failed ({e}); falling back to raw question as initial query.")
+    return {"key_entities": [], "initial_query": question}
+
+
 def judge_sufficiency(question: str, accumulated_evidence: str, max_attempts: int = 3) -> Dict[str, Any]:
     """
     Ask the LLM: given what we've gathered so far, can we answer the question?
@@ -265,7 +307,14 @@ def chunks_are_near_duplicate(chunks_a: List[Dict[str, Any]], chunks_b: List[Dic
 def run_iterative_search(question: str) -> SearchTrace:
     trace = SearchTrace(original_question=question)
     accumulated_evidence = ""
-    current_query = question
+
+    plan = plan_initial_query(question)
+    trace.plan = plan
+    current_query = plan["initial_query"]
+    if plan.get("key_entities"):
+        print(f"  [plan] Key entities identified: {plan['key_entities']}")
+        print(f"  [plan] Initial query: '{current_query}'")
+
     previous_chunk_sets: List[List[Dict[str, Any]]] = []
 
     for i in range(1, MAX_ITERATIONS + 1):

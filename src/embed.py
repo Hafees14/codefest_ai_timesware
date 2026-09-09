@@ -154,27 +154,86 @@ def build_vector_store(force_rebuild: bool = False):
 # ---------------------------------------------------------------------------
 # Retrieval helper — this is what your orchestrator.py should call
 # ---------------------------------------------------------------------------
-def search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-    """Embed a query and retrieve the top_k most relevant chunks.
+# ---------------------------------------------------------------------------
+# Hybrid retrieval: dense (semantic) + BM25 (keyword) via simple rank fusion.
+#
+# Why: the corpus contains OCR'd scans, tables, and mixed-reliability
+# ephemera. Dense-only retrieval can miss exact-name/number matches (a
+# codex date like "246 AS", a proper noun spelled unusually) that a
+# keyword-based signal catches reliably. This is intentionally simple
+# (rank-position averaging, not a trained reranker or learned fusion
+# weight) — a cheap, low-risk addition rather than a new ML component
+# whose behavior would need separate validation before submission.
+# ---------------------------------------------------------------------------
+_bm25_index = None
+_bm25_chunk_lookup: List[Dict[str, Any]] = None
+
+
+def _build_bm25_index():
+    """Lazily build a BM25 index over every chunk currently in the Chroma
+    collection. Built once per process and cached — rebuilding per-query
+    would be wasteful since the corpus doesn't change during a run."""
+    global _bm25_index, _bm25_chunk_lookup
+    if _bm25_index is not None:
+        return
+
+    from rank_bm25 import BM25Okapi
+
+    chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
+    collection = chroma_client.get_collection(COLLECTION_NAME)
+    all_data = collection.get()  # fetches every stored document + metadata
+
+    _bm25_chunk_lookup = []
+    tokenized_corpus = []
+    for doc_id_key, text, meta in zip(all_data["ids"], all_data["documents"], all_data["metadatas"]):
+        _bm25_chunk_lookup.append({
+            "text": text,
+            "source": meta["doc_id"],
+            "doc_id": meta["doc_id"],
+            "doc_type": meta["doc_type"],
+            "is_ocr": meta["is_ocr"],
+        })
+        tokenized_corpus.append(text.lower().split())
+
+    _bm25_index = BM25Okapi(tokenized_corpus)
+    print(f"  [bm25] Built keyword index over {len(_bm25_chunk_lookup)} chunks.")
+
+
+def _bm25_search(query: str, top_k: int) -> List[Dict[str, Any]]:
+    _build_bm25_index()
+    scores = _bm25_index.get_scores(query.lower().split())
+    ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    return [_bm25_chunk_lookup[i] for i in ranked_indices]
+
+
+def search(query: str, top_k: int = 5, use_hybrid: bool = True) -> List[Dict[str, Any]]:
+    """Retrieve the top_k most relevant chunks for a query.
+
     Returns list of {"text", "source", "doc_id", "score", ...} dicts,
-    matching the shape orchestrator.py's vector_search() expects."""
+    matching the shape orchestrator.py's vector_search() expects.
+
+    When use_hybrid=True (default), combines dense semantic search with a
+    BM25 keyword search via simple reciprocal-rank fusion: each chunk's
+    final rank is based on the sum of (1 / rank_in_dense) and
+    (1 / rank_in_bm25), so a chunk appearing near the top of either list
+    scores well, and a chunk appearing in both scores best. Set
+    use_hybrid=False to fall back to pure dense search (the original
+    behavior) for comparison/debugging.
+    """
     model = get_model()
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
     collection = chroma_client.get_collection(COLLECTION_NAME)
 
+    dense_k = top_k * 3 if use_hybrid else top_k  # widen the dense pool before fusing
     query_embedding = model.encode(
         QUERY_PREFIX + query, normalize_embeddings=True, show_progress_bar=False
     ).tolist()
+    results = collection.query(query_embeddings=[query_embedding], n_results=dense_k)
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-    )
-
-    chunks = []
+    dense_chunks = []
     for i in range(len(results["ids"][0])):
         meta = results["metadatas"][0][i]
-        chunks.append({
+        dense_chunks.append({
             "text": results["documents"][0][i],
             "source": meta["doc_id"],
             "doc_id": meta["doc_id"],
@@ -182,7 +241,30 @@ def search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
             "is_ocr": meta["is_ocr"],
             "score": results["distances"][0][i],
         })
-    return chunks
+
+    if not use_hybrid:
+        return dense_chunks[:top_k]
+
+    bm25_chunks = _bm25_search(query, top_k=top_k * 3)
+
+    # Reciprocal-rank fusion, keyed by doc_id + a text prefix (same key
+    # shape used by orchestrator.py's near-duplicate check, for consistency)
+    def chunk_key(c):
+        return (c["doc_id"], c["text"][:120])
+
+    fused_scores: Dict[Any, float] = {}
+    chunk_by_key: Dict[Any, Dict[str, Any]] = {}
+    for rank, c in enumerate(dense_chunks, start=1):
+        k = chunk_key(c)
+        fused_scores[k] = fused_scores.get(k, 0.0) + 1.0 / rank
+        chunk_by_key[k] = c
+    for rank, c in enumerate(bm25_chunks, start=1):
+        k = chunk_key(c)
+        fused_scores[k] = fused_scores.get(k, 0.0) + 1.0 / rank
+        chunk_by_key.setdefault(k, c)
+
+    ranked_keys = sorted(fused_scores.keys(), key=lambda k: fused_scores[k], reverse=True)
+    return [chunk_by_key[k] for k in ranked_keys[:top_k]]
 
 
 if __name__ == "__main__":

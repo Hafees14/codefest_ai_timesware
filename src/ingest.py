@@ -5,7 +5,7 @@ SLIIT Codefest 2026 AI Competition — Ashen Era Archive
 Handles: PDF (text + scanned/image-based), DOCX, Markdown, plain text.
 Outputs: a list of chunk dicts ready for embedding, saved to chunks.jsonl
 
-This is a SKELETON. Test against the real corpus once downloaded and adjust
+Tested against the real Ashen Era Archive corpus; adjust
 chunk sizes / metadata fields to match what your retrieval + orchestrator need.
 """
 

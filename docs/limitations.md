@@ -49,3 +49,38 @@ raw corpus files by hand. No automated scoring pipeline exists.
 Not verified for every deduped file pair — only spot-checked for a few.
 If any pair has meaningfully different content between formats, that
 content would be silently missing from the index.
+
+## 7. Query planning is still LLM-driven, not symbolic
+
+`plan_initial_query()` (added after external review) answers "how do you
+decide where to look" with a real, separately-inspectable step — but it
+is still one LLM call proposing entities and a focused query, not a
+deterministic entity-extraction pipeline. Its quality is only as good as
+that single call's output for a given question, and it has not been
+benchmarked against the previous "raw question as first query" behavior
+across a range of questions to confirm it reliably improves first-search
+relevance rather than just changing it. A fallback to the raw question on
+any planning failure exists specifically so this addition cannot make
+the pipeline strictly worse than before.
+
+## 8. Hybrid retrieval fusion weight is unvalidated
+
+The new BM25 + dense fusion in `embed.py` uses simple reciprocal-rank
+summing with no tuned weighting between the two signals, and has not
+been tested against the real corpus to confirm it retrieves better
+evidence than dense-only search did. It is a reasonable, low-risk
+addition given the corpus's known OCR/mixed-reliability profile, but its
+actual effect on answer quality is currently unverified — the same
+honesty standard applied to the near-duplicate-retrieval check (see
+entry 1b) applies here: this should be described as "a principled
+addition," not as a benchmarked improvement, until it is tested.
+
+## 9. Commit history: acknowledged, not retroactively fixable
+
+An external review correctly identified a thin commit history relative
+to the amount of iterative work reflected in this documentation and
+codebase. This cannot be fixed retroactively without fabricating a false
+history, which would be worse than an honest short one if discovered.
+Going forward from this point, remaining work is committed in smaller,
+real increments to at least partially reflect the iteration that has
+genuinely occurred.
