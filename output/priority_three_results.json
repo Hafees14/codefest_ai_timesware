@@ -1,0 +1,85 @@
+[
+  {
+    "question": "State the precise year in the Age of Shadows that marks the true founding of Gloamreach.",
+    "plan": {
+      "key_entities": [
+        "Age of Shadows",
+        "Gloamreach"
+      ],
+      "initial_query": "Gloamreach founding year Age of Shadows"
+    },
+    "steps": [
+      {
+        "iteration": 1,
+        "query": "Gloamreach founding year Age of Shadows",
+        "reasoning": "The primary source for Gloamreach explicitly states that its founding is contested, no year is accepted as definitive, and no year should be assigned; it directs readers to the Annals and Codex. The other sources discuss different locations (Emberdeep, Gloammarch, Vharencrag) or a ballad about Edge of Gloamreach, none of which provide a founding date for Gloamreach.",
+        "sufficient": false,
+        "num_chunks": 5
+      },
+      {
+        "iteration": 2,
+        "query": "Annals Codex Gloamreach founding year",
+        "reasoning": "The evidence indicates that Gloamreach's founding year is contested and no definitive year is accepted; sources advise consulting the Annals and Codex for the disputed record, but those sources have not been examined in the gathered evidence.",
+        "sufficient": false,
+        "num_chunks": 5
+      },
+      {
+        "iteration": 3,
+        "query": "Annals Gloamreach founding year",
+        "reasoning": "The Codex Vaeloria I: Gazetteer of the Sundered Realms provides an explicit and authoritative founding date of 246 AS for Gloamreach, stating 'The founding record is exact: Gloamreach's founded is 246 AS' and that 'Popular accounts wrongly claim otherwise.' While the wiki article on Gloamreach presents the founding as contested and says no year should be assigned, it directs readers to the Annals and Codex as the ultimate authorities—and the Codex gazetteer resolves the dispute definitively with 246 AS.",
+        "sufficient": true,
+        "num_chunks": 5
+      }
+    ],
+    "final_answer": "\n\nBased on the provided evidence, the sources regarding the true founding year of Gloamreach in the Age of Shadows conflict directly:\n\n* **Contested/No Definitive Year:** The wiki article on Gloamreach (`wiki\\gloamreach.md`) repeatedly states that the location's founding is contested among sources, and **no founding year is accepted as definitive**. It explicitly advises that \"no year should be assigned to its establishment\" and refers readers to the *Annals* and *Codex* to examine the disputed record rather than relying on later summaries that attempt to settle the matter.\n* **246 AS:** Conversely, the *Codex Vaeloria I: Gazetteer of the Sundered Realms* (`codex\\codex_vaeloria_i_gazetteer_of_the_sundered_realms.docx`) asserts that the founding record is exact: **Gloamreach was founded in 246 AS**. It dismisses other accounts, stating that \"popular accounts wrongly claim otherwise\" and do not supersede the established date of 246 AS.\n\n### Conclusion\nBecause of this explicit conflict in the sources, a single consensus year cannot be established without resolving the underlying disagreement between the general wiki entry (which treats the year as unresolved) and the specific codex entry (which claims 246 AS is the definitive year).",
+    "qid": "1c_000"
+  },
+  {
+    "question": "In which year was the 'Gauntlet of Sorrowfell' actually forged?",
+    "plan": {
+      "key_entities": [],
+      "initial_query": "In which year was the 'Gauntlet of Sorrowfell' actually forged?"
+    },
+    "steps": [
+      {
+        "iteration": 1,
+        "query": "In which year was the 'Gauntlet of Sorrowfell' actually forged?",
+        "reasoning": "The Codex explicitly states that the authoritative/accepted forging date for the Gauntlet of Sorrowfell is 391 AS and rejects competing dates. The wiki notes the dispute but defers to the Codex/Annals, so the available evidence is sufficient.",
+        "sufficient": true,
+        "num_chunks": 5
+      }
+    ],
+    "final_answer": "**Answer**\n\n- The **Codex Vaeloria II – Armory of Relics and Bestiary** records the authoritative forging date as **391 AS** and explicitly rejects alternative accounts, stating that “the accepted forging date is 391 AS, and no competing date has standing in this codex.”【Source: codex\\codex_vaeloria_ii_armory_of_relics_and_bestiary.docx】  \n\n- In contrast, the **Wiki “Gauntlet of Sorrowfell”** article notes that “the date on which the gauntlet was forged is not recorded in the supplied facts… the forging account is contested among sources, and no year should be assigned to it.” It further describes the forging date as “remains unresolved.”【Source: wiki\\gauntlet_of_sorrowfell.md】  \n\n**Conflict:** The codex asserts a definitive forging year (391 AS), while the wiki treats the forging date as unrecorded and disputed. The two sources therefore conflict on whether a specific year can be assigned.",
+    "qid": "1c_003"
+  },
+  {
+    "question": "To which shadowed redoubt must one journey to examine the relic long borne by Cerys Sablewood the Ashen since 356 AS?",
+    "plan": {
+      "key_entities": [
+        "Cerys Sablewood the Ashen",
+        "356 AS",
+        "relic",
+        "shadowed redoubt"
+      ],
+      "initial_query": "Cerys Sablewood the Ashen relic 356 AS shadowed redoubt"
+    },
+    "steps": [
+      {
+        "iteration": 1,
+        "query": "Cerys Sablewood the Ashen relic 356 AS shadowed redoubt",
+        "reasoning": "The evidence identifies the relic as The Cinder-Wrought Aegis, wielded by Cerys Sablewood the Ashen since 356 AS, but it does not identify the shadowed redoubt or location where one must journey to examine it.",
+        "sufficient": false,
+        "num_chunks": 5
+      },
+      {
+        "iteration": 2,
+        "query": "The Cinder-Wrought Aegis shadowed redoubt location examine",
+        "reasoning": "The Cinder-Wrought Aegis, wielded by Cerys Sablewood the Ashen since 356 AS, is recorded as being housed in Gloamreach (armory record). Gloamreach is the location (shadowed redoubt) one must go to examine the relic.",
+        "sufficient": true,
+        "num_chunks": 5
+      }
+    ],
+    "final_answer": "One must journey to **Gloamreach**.\n\n- Cerys Sablewood the Ashen has wielded **The Cinder-Wrought Aegis** since **356 AS** ([codex\\the_annals_of_the_ashen_era.docx](codex\\the_annals_of_the_ashen_era.docx); also [wiki\\cerys_sablewood_the_ashen.md](wiki\\cerys_sablewood_the_ashen.md)).\n- **The Cinder-Wrought Aegis** is recorded as housed in **Gloamreach** ([codex\\codex_vaeloria_ii_armory_of_relics_and_bestiary.docx](codex\\codex_vaeloria_ii_armory_of_relics_and_bestiary.docx); also [wiki\\the_cinder_wrought_aegis.md](wiki\\the_cinder_wrought_aegis.md)).",
+    "qid": "1b_003"
+  }
+]

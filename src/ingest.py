@@ -316,6 +316,10 @@ def run_ingestion(corpus_dir: str = CORPUS_DIR, output_file: str = OUTPUT_FILE):
         if i % 20 == 0 or i == len(files):
             print(f"Processed {i}/{len(files)} files, {len(all_chunks)} chunks so far.")
 
+    # Ensure the output directory exists — a fresh clone won't have data/
+    # created yet, and open() does not create parent directories itself.
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+
     with open(output_file, "w", encoding="utf-8") as f:
         for chunk in all_chunks:
             f.write(json.dumps(asdict(chunk), ensure_ascii=False) + "\n")

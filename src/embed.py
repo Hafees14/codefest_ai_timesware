@@ -32,6 +32,10 @@ import chromadb
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHUNKS_FILE = os.environ.get("CHUNKS_FILE", str(_PROJECT_ROOT / "data" / "chunks.jsonl"))
 CHROMA_DIR = os.environ.get("CHROMA_DIR", str(_PROJECT_ROOT / "data" / "chroma_db"))
+# Defensive: ensure the directory exists before any PersistentClient call,
+# even though chromadb generally creates it itself — a fresh clone should
+# never fail here regardless of chromadb version behavior.
+Path(CHROMA_DIR).mkdir(parents=True, exist_ok=True)
 COLLECTION_NAME = "ashen_era_archive"
 
 # bge-large-en-v1.5: strong open-weight retrieval model, free, runs locally.
@@ -203,7 +207,12 @@ def _bm25_search(query: str, top_k: int) -> List[Dict[str, Any]]:
     _build_bm25_index()
     scores = _bm25_index.get_scores(query.lower().split())
     ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    return [_bm25_chunk_lookup[i] for i in ranked_indices]
+    results = []
+    for i in ranked_indices:
+        chunk = dict(_bm25_chunk_lookup[i])  # copy so we don't mutate the cached lookup
+        chunk["score"] = float(scores[i])
+        results.append(chunk)
+    return results
 
 
 def search(query: str, top_k: int = 5, use_hybrid: bool = True) -> List[Dict[str, Any]]:
@@ -219,6 +228,13 @@ def search(query: str, top_k: int = 5, use_hybrid: bool = True) -> List[Dict[str
     scores well, and a chunk appearing in both scores best. Set
     use_hybrid=False to fall back to pure dense search (the original
     behavior) for comparison/debugging.
+
+    Note on the returned "score" field: dense-only chunks carry a cosine
+    distance, BM25-only chunks carry a raw BM25 score, and these are on
+    incomparable scales. The field is kept for backward compatibility
+    with callers that just display/log it, but "fusion_score" is the
+    actual ranking signal used to order results in hybrid mode — use
+    that field, not "score", if you need the real fused rank value.
     """
     model = get_model()
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
@@ -264,7 +280,17 @@ def search(query: str, top_k: int = 5, use_hybrid: bool = True) -> List[Dict[str
         chunk_by_key.setdefault(k, c)
 
     ranked_keys = sorted(fused_scores.keys(), key=lambda k: fused_scores[k], reverse=True)
-    return [chunk_by_key[k] for k in ranked_keys[:top_k]]
+    final_chunks = []
+    for k in ranked_keys[:top_k]:
+        chunk = dict(chunk_by_key[k])
+        chunk["fusion_score"] = fused_scores[k]
+        # "score" is guaranteed present on every returned chunk regardless
+        # of which retrieval method(s) it came from — fixes the crash where
+        # a BM25-only chunk (found via setdefault, never touched by the
+        # dense loop above) previously had no "score" key at all.
+        chunk.setdefault("score", None)
+        final_chunks.append(chunk)
+    return final_chunks
 
 
 if __name__ == "__main__":
@@ -274,5 +300,14 @@ if __name__ == "__main__":
     print("\n--- Smoke test ---")
     test_results = search("What happened at Crookgate Keep?", top_k=3)
     for r in test_results:
-        print(f"[{r['doc_type']}] {r['doc_id']} (score={r['score']:.4f})")
+        # fusion_score is the actual ranking signal (comparable across all
+        # results); raw score is shown only as secondary context, since it
+        # sits on a different scale depending on whether a chunk came from
+        # dense search (cosine distance), BM25 (raw keyword score), or both.
+        raw_score_label = (
+            f"{r['score']:.4f}" if r.get("score") is not None else "n/a (BM25-only match)"
+        )
+        print(f"[{r['doc_type']}] {r['doc_id']}  "
+              f"fusion_score={r.get('fusion_score', 0):.4f}  "
+              f"(raw score: {raw_score_label})")
         print(f"  {r['text'][:150]}...\n")

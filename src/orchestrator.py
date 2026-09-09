@@ -101,7 +101,12 @@ def embed_query(text: str) -> List[float]:
 
 def vector_search(query_text: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
     """Query the Chroma vector store (see embed.py). Returns chunk dicts:
-    [{"text": ..., "source": ..., "doc_id": ..., "doc_type": ..., "is_ocr": ..., "score": ...}, ...]
+    [{"text": ..., "source": ..., "doc_id": ..., "doc_type": ..., "is_ocr": ...,
+      "score": ..., "fusion_score": ...}, ...]
+    "score" is on a different scale depending on whether a chunk came from
+    dense search, BM25, or both (and may be None for a BM25-only match) —
+    "fusion_score" is the comparable, rank-consistent value if you need to
+    reason about relative relevance across the returned set.
     """
     from embed import search
     return search(query_text, top_k=top_k)
@@ -362,9 +367,13 @@ def run_iterative_search(question: str) -> SearchTrace:
 # Entry point / example usage
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    # NOTE: swap this placeholder for real questions from sample_questions.json
-    # once you've confirmed the pipeline works end-to-end.
-    q = "Which other equipment or factions are affected if the artifact known as X is destroyed?"
+    import sys
+    # Usage: python orchestrator.py "your question here"
+    # Falls back to a default test question if none is given.
+    if len(sys.argv) > 1:
+        q = " ".join(sys.argv[1:])
+    else:
+        q = "Which other equipment or factions are affected if the artifact known as X is destroyed?"
     trace = run_iterative_search(q)
     print(json.dumps(trace.to_dict(), indent=2))
     print("\n=== FINAL ANSWER ===")

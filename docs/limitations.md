@@ -22,6 +22,68 @@ confidence score behind it. A skeptical reviewer asking "what code
 decides you have enough evidence" should be told exactly this, not given
 an inflated description of the mechanism.
 
+## 1c. Measured, n=4: judge_sufficiency can accept a contested claim as settled while acknowledging the conflict, then synthesis hedges rather than fully refusing
+
+A 4-run repeat test of the question "State the precise year in the Age
+of Shadows that marks the true founding of Gloamreach" (see
+`output/1c_000_repeat_runs.json`) found: **1 of 4 runs (25%)** had
+`judge_sufficiency` return `"sufficient": true` at iteration 2 despite
+its own reasoning for that call explicitly noting *"the main Gloamreach
+article indicates general controversy"* — it saw the conflict and chose
+to treat the codex as authoritative anyway. The other 3 of 4 runs never
+reached `sufficient: true` at all; they were stopped by the independent
+near-duplicate-retrieval check (decisions.md #8) after iteration 2, still
+undecided.
+
+**Verified as a reasoning/weighting difference, not a retrieval miss**:
+the wiki's "contested, no year should be assigned" language was present
+in the accumulated evidence context by iteration 1 in every run,
+including the one that later returned `sufficient: true` — the evidence
+was there; the model chose to prioritize one source over an
+already-visible conflict.
+
+**The resulting final answer was not silent about the conflict**, which
+somewhat softens the finding: it led with a direct, bolded "246 AS"
+answer, then still appended *"There is a conflict: `wiki\gloamreach.md`
+says Gloamreach's founding is contested..."* in the same response. So
+`synthesize_answer` did not fully fail to surface the disagreement — but
+it also did not refuse to commit to a number the way the other 3 runs
+effectively did (by never reaching a confident answer at all). The
+practical failure mode observed is a **hedge**, not a fully silent wrong
+answer: a confident-sounding lead claim followed by a caveat, rather
+than either a clean refusal or a clean single answer. Whether a
+skimming reader would notice the caveat below a bolded number is a real
+concern even though the information is technically present.
+
+This converts what was previously a general, unbenchmarked concern
+(entry 1b) into a measured one: **1/4 observed**, on a small n, with a
+concrete, named mechanism — **silent source-authority tiebreaking with
+no independent check**: the sufficiency call can resolve a source
+conflict on its own initiative and mark itself `sufficient: true`
+without carrying that tiebreaker judgment into a flagged, reported
+disagreement. This is a specific instance of entry 1b's general concern,
+not a new one — the near-duplicate-retrieval check (decisions.md #8)
+guards against a different, unrelated failure mode (looping on exhausted
+evidence), and provides no protection here. This specific question is
+documented here but deliberately not used in the live demo given the
+measured variability (see docs/demo_script.md) — the team's judgment was
+that a ~25% chance of the weaker, hedged answer was too high a risk for
+a live, unscripted
+run, while still being valuable, disclosed evidence for the report.
+
+## 1d. The same question behaves differently across repeated runs, confirmed at n=4
+
+A 4-run repeat of the Gloamreach founding-year question under identical
+input found: 3 of 4 runs stopped after 2 iterations via the independent
+near-duplicate check, never reaching a confident sufficiency verdict;
+1 of 4 reached `sufficient: true` at iteration 2 with the hedged-answer
+behavior described in 1c above. This is the `openrouter/free` per-call
+model rotation (documented since decisions.md #2) manifesting as
+measured behavioral variance on identical input, not a hypothetical
+risk. This is the concrete reason this specific question was moved out
+of the live demo segment and kept as a documented, disclosed limitation
+instead.
+
 ## 2. Single-iteration answers rely on retrieval luck
 One test question resolved in a single iteration because the first
 retrieval happened to surface everything needed. Manually verified as
@@ -63,6 +125,18 @@ relevance rather than just changing it. A fallback to the raw question on
 any planning failure exists specifically so this addition cannot make
 the pipeline strictly worse than before.
 
+**Observed, not just designed**: during priority testing of `1c_003`
+("Gauntlet of Sorrowfell" forging year), `plan_initial_query()` genuinely
+failed with a JSON parse error on that run, and the fallback correctly
+substituted the raw question as the first search — this is the first
+real execution of that fallback path, not just a code review confirming
+it exists. The question still resolved correctly in one iteration
+because both conflicting sources happened to be present in that first
+retrieval regardless of which query (planned or raw) triggered it — a
+convenient outcome that does not by itself confirm the fallback always
+recovers gracefully when retrieval quality genuinely depends on the
+planning step succeeding.
+
 ## 8. Hybrid retrieval fusion weight is unvalidated
 
 The new BM25 + dense fusion in `embed.py` uses simple reciprocal-rank
@@ -97,3 +171,17 @@ history, which would be worse than an honest short one if discovered.
 Going forward from this point, remaining work is committed in smaller,
 real increments to at least partially reflect the iteration that has
 genuinely occurred.
+
+## 10. Hybrid search's "score" field is not a single comparable metric
+
+`embed.py`'s `search()` originally crashed when a chunk was found only by
+the BM25 pass and never appeared in the widened dense top-k (a real bug,
+caught during pre-demo testing, not by static review — the BM25-sourced
+chunk had no `"score"` key at all). Fixed by ensuring every returned
+chunk always has a `"score"` field. However, that field's *meaning*
+still differs depending on origin: a dense-only or dense-and-BM25 chunk
+carries a cosine distance, a BM25-only chunk carries `None` for `score`
+and its raw BM25 value only in the separate `"fusion_score"` field.
+Callers that log or display `"score"` should be aware it is not one
+consistent scale across all returned chunks — `"fusion_score"` is the
+actual value used to rank results in hybrid mode.

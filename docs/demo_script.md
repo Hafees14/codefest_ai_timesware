@@ -23,8 +23,8 @@ Run these on screen, live, in order. Do not pre-record and cut - the
 requirement is a genuine live demonstration.
 
 ### Demo question 1 (show it works normally)
-Run: "State the precise year in the Age of Shadows that marks the true
-founding of Gloamreach."
+Run: "To which shadowed redoubt must one journey to examine the relic
+long borne by Cerys Sablewood the Ashen since 356 AS?"
 
 **Before it runs**, narrate: "First, watch it plan. It doesn't just fire
 the raw question at the search engine."
@@ -39,19 +39,24 @@ While the loop runs, narrate: "Now watch it iterate. It's not just
 grabbing one passage. It's checking whether it actually has enough to
 answer."
 
-Point out on screen: the multi-iteration trace, and specifically the
-final answer surfacing the codex (246 AS) vs. ephemera (286 AS) vs. wiki
-("contested") conflict explicitly, rather than picking one.
+Point out on screen: iteration 1 identifies the relic (The
+Cinder-Wrought Aegis) and its bearer, but doesn't yet know where the
+relic is housed; iteration 2's query pivots to chase that specific gap,
+and the final answer correctly chains bearer -> relic -> location
+(Gloamreach), citing both the codex and the wiki consistently.
 
-Say out loud: "This is the corpus's built-in unreliable-sources test, and
-our system caught it rather than guessing."
+Say out loud: "That second query wasn't scripted — it came from what
+the system learned in the first search. That's the actual behavior
+Sub-track 1C is asking for."
 
-**Honesty beat (say this explicitly, don't skip it)**: "The sufficiency
-check itself — deciding 'yes, I have enough' — is still one LLM call. We
-haven't pretended otherwise. What's new is that deciding *where to
-start* and *what to search* is now a real, inspectable step, and if the
-system ever loops back to evidence it already has, a separate check in
-our code catches that independently of the LLM's own judgment."
+**Note (not shown live, kept for the report):** we also ran a question
+requiring source-conflict resolution ("true founding year of
+Gloamreach") and found it exposed a real gap — on 4 repeated runs, the
+sufficiency check accepted a single source's claim without
+cross-referencing a contradicting source already in evidence in 1 of 4
+runs (see docs/limitations.md). We're not demoing it live given that
+measured variability, but it's documented honestly as a known failure
+case rather than hidden.
 
 ### Demo question 2 (show it resists fabrication - your strongest result)
 Run: "What happened to Voltaire Hollowmere after the Ley-storm that ended
